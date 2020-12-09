@@ -18,10 +18,17 @@ classifiers= [
 [tool.poetry.dependencies]
 python = "^3.7"
 selenium = "*"
+click = "*"
+requests = "*"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.0"
 pylint = "*"
+
+[tool.poetry.dev-dependencies.black]
+version = "^20.8b1"
+allow-prereleases = true 
+python = "^3.7"
 
 [tool.poetry.plugins]
 [tool.poetry.plugins."console_scripts"]
