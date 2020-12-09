@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "bought"
+version = "0.1.0"
+description = "A bot that purchases items, rendering them bought."
+authors = ["Jason G. Villanueva <a@jsonvillanueva.com>"]
+license = "GPL v3"
+readme = "README.md"
+repository = "https://github.com/boughts/bought"
+classifiers= [
+    "Development Status :: 1 - Planning",
+    "Environment :: Console (Text Based)",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Natural Language :: English",
+    ]
+[tool.poetry.dependencies]
+python = "^3.7"
+selenium = "*"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.0"
+pylint = "*"
+
+[tool.poetry.plugins]
+[tool.poetry.plugins."console_scripts"]
+"bought" = "bought.__main__:main"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
