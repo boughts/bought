@@ -18,7 +18,7 @@ python --version
 This will display the python version on your system. Ensure you are running
 Python 3.6, or higher. If you are running an earlier version of Python, please update your Python.
 
-### 2. Download This Project
+### 2. Installing Bought
 Python comes with its own package manager called `pip`. Upgrade pip using:
 ```
 python -m pip install --upgrade pip

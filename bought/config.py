@@ -1,7 +1,8 @@
 import os
 import click
-import configparser 
+import configparser
 import functools
+
 
 class ConfigParser:
     """
@@ -41,7 +42,7 @@ def config_callback(
     implicit,
     ctx,
     param,
-    value
+    value,
 ):
     """
     Callback for reading the config file.
@@ -72,8 +73,7 @@ def config_callback(
     cmd_name = cmd_name or ctx.info_name
     ctx.config = None
     if implicit:
-        default_value = os.path.join(
-            os.getcwd(), config_file)
+        default_value = os.path.join(os.getcwd(), config_file)
         param.default = default_value
         value = value or default_value
 
@@ -81,8 +81,7 @@ def config_callback(
         try:
             config = provider(value, cmd_name)
         except Exception as e:
-            raise click.BadOptionUsage(option_name,
-                f"Error reading config: {e}", ctx)
+            raise click.BadOptionUsage(option_name, f"Error reading config: {e}", ctx)
         ctx.config = config
         ctx.default_map.update(config)
     return saved_callback(ctx, param, value) if saved_callback else value
@@ -117,37 +116,43 @@ def config_reader(*param_decls, **attrs):
         A callable that parses the configuration file and returns a dictionary
         of the configuration parameters. Will be called as
         `parser(file_path, cmd_name)`.
-        """
-    param_decls = param_decls or ('-c','--config', )
+    """
+    param_decls = param_decls or (
+        "-c",
+        "--config",
+    )
     option_name = param_decls[0]
 
     def decorator(f):
 
-        attrs.setdefault('is_eager', True)
-        attrs.setdefault('help', 'Read configuration from FILE.')
-        attrs.setdefault('expose_value', False)
-        implicit = attrs.pop('implicit', False)
-        cmd_name = attrs.pop('cmd_name', None)
-        config_file = attrs.pop('config_file_name', 'config.ini')
-        provider = attrs.pop('provider', ConfigParser())
+        attrs.setdefault("is_eager", True)
+        attrs.setdefault("help", "Read configuration from FILE.")
+        attrs.setdefault("expose_value", False)
+        implicit = attrs.pop("implicit", False)
+        cmd_name = attrs.pop("cmd_name", None)
+        config_file = attrs.pop("config_file_name", "config.ini")
+        provider = attrs.pop("provider", ConfigParser())
         path_default_params = {
-            'exists': False,
-            'file_okay': True,
-            'dir_okay': False,
-            'writable': False,
-            'readable': True,
-            'resolve_path': False
+            "exists": False,
+            "file_okay": True,
+            "dir_okay": False,
+            "writable": False,
+            "readable": True,
+            "resolve_path": False,
         }
-        path_params = {
-            k: attrs.pop(k, v)
-            for k, v in path_default_params.items()
-        }
-        attrs['type'] = attrs.get('type', click.Path(**path_params))
-        saved_callback = attrs.pop('callback', None)
+        path_params = {k: attrs.pop(k, v) for k, v in path_default_params.items()}
+        attrs["type"] = attrs.get("type", click.Path(**path_params))
+        saved_callback = attrs.pop("callback", None)
         partial_callback = functools.partial(
-            config_callback, cmd_name, option_name,
-            config_file, saved_callback, provider, implicit)
-        attrs['callback'] = partial_callback
+            config_callback,
+            cmd_name,
+            option_name,
+            config_file,
+            saved_callback,
+            provider,
+            implicit,
+        )
+        attrs["callback"] = partial_callback
         return click.option(*param_decls, **attrs)(f)
 
     return decorator
