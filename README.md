@@ -16,14 +16,20 @@ Open up your respective CLI and type:
 python --version
 ```
 This will display the python version on your system. Ensure you are running
-Python 3.6, or higher. If you are running an earlier version of Python, please update your Python.
+Python 3.7, or higher. If you are running an earlier version of Python,
+please update your Python. If a Python version isn't installed on your
+computer and you received an error running this command, download Python from
+[Python.org](https://www.python.org/downloads/), or a Python distribution
+like [Anaconda](https://www.anaconda.com/products/individual#Downloads).
 
 ### 2. Installing Bought
-Python comes with its own package manager called `pip`. Upgrade pip using:
+Python comes with its own package manager called `pip` which can install
+packages/libraries. Upgrade the pip package using pip:
 ```
 python -m pip install --upgrade pip
 ```
-Now run the following to download this project package to your system.
+Now run the following to download this project package to your system's
+Python:
 ```
 pip install bought
 ```
@@ -82,4 +88,15 @@ recommended to use Bought with a config file:
 bought -c config.ini
 ```
 
-The config.ini file can be specified in any directory. A sample one is provided in this directory.
+The config.ini file can be specified in any directory. A sample one is
+provided in this directory.
+
+## Contributing
+First and foremost, [create an
+issue](https://github.com/boughts/bought/issues/new) on the github
+repository. This is where issues can be made known publicly -- be sure to
+check for duplicates prior to submitting an issue.
+
+If you want to address an issue yourself or submit a Pull Request for any
+other reason, fork this repository and develop your changes in a branch
+seperate from `main`.
