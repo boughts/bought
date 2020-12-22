@@ -179,8 +179,10 @@ class Newegg:
             # Continue to Payment
             try:
                 print("Continue to Payment")
-                xpath3 = "/html/body/div[7]/div/section/div/div/form/div[2]/div[1]/div/div[2]/div/div[3]/button"
-                payment = self.driver.find_element_by_xpath(xpath3)
+                continue_to_payment_btn_path = "/html/body/div[7]/div/section/div/div/form/div[2]/div[1]/div/div[2]/div/div[3]/button"
+                payment = self.driver.find_element_by_xpath(
+                    continue_to_payment_btn_path
+                )
                 last_height = self.driver.execute_script(
                     "return document.body.scrollHeight"
                 )
@@ -240,10 +242,12 @@ class Newegg:
                 self.driver.refresh()
                 try:
                     if self.driver.find_element_by_xpath(xpath):
-                        print("IN STOCK!")
+                        current_time = time.time()
+                        print(f"{current_time} IN STOCK!")
                         return self.driver.find_element_by_xpath(xpath).click()
                 except NoSuchElementException:
-                    print("Not in stock...")
+                    current_time = time.time()
+                    print(f"{current_time} Not in stock...")
                     pass
             time.sleep(random.uniform(self.delay_lower, self.delay_upper))
 
@@ -283,6 +287,12 @@ class Newegg:
         # Go to NewEgg's website
         self.driver.get(self.base_url)
 
+        # Check if you are banned
+        ban_xpath = '//div[@class="page-404-text"]'
+        if self.driver.find_element_by_xpath(ban_xpath):
+            print("You are currently proxy banned! Exiting...")
+            print("Try increasing the Main.Delay value.")
+            exit()
         # Ensure logged in before continuing
         while not self.is_logged_in():
             self.log_in()
