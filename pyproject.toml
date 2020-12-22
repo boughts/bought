@@ -8,7 +8,6 @@ readme = "README.md"
 repository = "https://github.com/boughts/bought"
 classifiers= [
     "Development Status :: 1 - Planning",
-    "Environment :: Console (Text Based)",
     "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
