@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bought"
-version = "0.1.0"
+version = "0.1.1"
 description = "A bot that purchases items, rendering them bought."
 authors = ["Jason G. Villanueva <a@jsonvillanueva.com>"]
 license = "GPL v3"

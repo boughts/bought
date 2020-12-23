@@ -6,10 +6,13 @@ import os
 import sys
 import json
 import click
+import logging
 import pathlib
 import configparser
 
+from urllib3.connectionpool import log as urllibLogger
 from selenium import webdriver
+from selenium.webdriver.remote.remote_connection import LOGGER as selenium_logger
 from bought.config import config_reader
 from bought.websites.newegg import Newegg
 
@@ -41,9 +44,28 @@ def main(ctx, driver, headless):
     ctx.ensure_object(dict)
 
     drive = None
+    fp = None
     no_head = False
     invoke_newegg = False
     wait = None
+    logging.basicConfig(
+        filemode='a',
+        filename="bought.log",
+        encoding="utf-8",
+        level=logging.DEBUG
+    )
+    log = logging.getLogger("bought")
+    log.setLevel(logging.DEBUG)
+    selenium_logger.setLevel(logging.WARNING)
+    urllibLogger.setLevel(logging.WARNING)
+    sh = logging.StreamHandler()
+    sh.setLevel(logging.DEBUG)
+
+    formatter = logging.Formatter("[%(asctime)s] [%(levelname)s] %(message)s",
+                                "%Y-%m-%d %H:%M:%S")
+
+    sh.setFormatter(formatter)
+    log.addHandler(sh)
 
     # Override defaults if config.ini variable specified
     if ctx.config:
@@ -62,26 +84,42 @@ def main(ctx, driver, headless):
         no_head = headless
 
     if drive == "firefox":
+        log.info(f'Using FireFox webdriver.')
+        if os.path.isdir(ctx.config["Main"]["BrowserPath"]):
+            log.info(f'Logging profile: {ctx.config["Main"]["BrowserPath"]}')
+            fp = webdriver.FirefoxProfile(ctx.config["Main"]["BrowserPath"])
+            log.info("Finished loading profile.")
+        else:
+            log.info("Using default blank profile.")
+
         options = webdriver.FirefoxOptions()
     elif drive == "chrome" or drive == "chromium":
+        log.info(f'Using Chrome webdriver.')
         options = webdriver.ChromeOptions()
+        if ctx.config["Main"]["BrowserPath"]:
+            log.info(f'Logging profile: {ctx.config["Main"]["BrowserPath"]}')
+            options.add_argument(f'--user-data-dir={ctx.config["Main"]["BrowserPath"]}')
+        else:
+            log.info("Using default blank profile.")
     else:
         raise ValueError("Browser not specified!")
 
     if no_head:
         options.set_headless()
     options.page_load_strategy = "eager"
-    options.add_argument(
-        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:83.0) Gecko/20100101 Firefox/83.0"
-    )
+
     if drive == "firefox":
-        driver = webdriver.Firefox(firefox_options=options)
+        log.info("Starting webdriver.")
+        driver = webdriver.Firefox(fp, firefox_options=options)
+        log.info("Successfully created webdriver.")
     elif drive == "chrome" or drive == "chromium":
         driver = webdriver.Chrome(chrome_options=options)
+    log.info("Setting implicit wait time.")
     driver.implicitly_wait(wait)
     ctx.obj["driver"] = driver
 
     if invoke_newegg:
+        log.info("Starting Newegg script.")
         ctx.obj["config"] = ctx.config
         ctx.invoke(newegg, items=items)
 
