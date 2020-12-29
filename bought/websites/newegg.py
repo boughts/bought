@@ -36,6 +36,7 @@ class Newegg:
         self.delay = float(newegg_delay if newegg_delay else main_delay)
         main_delay_variance = float(self.config["Main"]["DelayVariance"])
         self.delay_lower = self.delay - main_delay_variance
+        assert self.delay_lower > 0
         self.delay_upper = self.delay + main_delay_variance
         self.username = self.config["Newegg"]["Username"]
         self.password = self.config["Newegg"]["Password"]
@@ -186,8 +187,8 @@ class Newegg:
 
     def secure_checkout(self):
 
-        if not self.is_self.log.ed_in():
-            self.self.log_in()
+        if not self.is_logged_in():
+            self.log_in()
 
         # Enter CVV2
         try:
@@ -265,7 +266,7 @@ class Newegg:
 
     def check_stock(self):
         """Cycles through opened tabs, refreshes, check if product is restocked."""
-        xpath = '//button[@class="btn btn-primary btn-wide"]'
+        add_to_cart_btn = '//button[@class="btn btn-primary btn-wide"]'
         while True:
             self.log.debug("Checking stock...")
             for tab in self.tabs.keys():
@@ -275,12 +276,10 @@ class Newegg:
                 self.driver.switch_to.window(self.tabs[tab])
                 self.driver.refresh()
                 try:
-                    if self.driver.find_element_by_xpath(xpath):
-                        current_time = time.time()
+                    if self.driver.find_element_by_xpath(add_to_cart_btn):
                         self.log.info("IN STOCK!")
-                        return self.driver.find_element_by_xpath(xpath).click()
+                        return self.driver.find_element_by_xpath(add_to_cart_btn).click()
                 except NoSuchElementException:
-                    current_time = time.time()
                     self.log.info("Not in stock...")
                     pass
             time.sleep(random.uniform(self.delay_lower, self.delay_upper))

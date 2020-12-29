@@ -89,7 +89,7 @@ bought -c config.ini
 ```
 
 The config.ini file can be specified in any directory. A sample one is
-provided in this directory.
+provided in this repository with descriptive comments about their usage.
 
 ## Contributing
 First and foremost, [create an
@@ -97,6 +97,11 @@ issue](https://github.com/boughts/bought/issues/new) on the github
 repository. This is where issues can be made known publicly -- be sure to
 check for duplicates prior to submitting an issue.
 
-If you want to address an issue yourself or submit a Pull Request for any
-other reason, fork this repository and develop your changes in a branch
-seperate from `main`.
+If you want to address an issue yourself, fork this repository, develop
+your changes in a branch seperate from `main`, and submit a pull request.
+
+This project uses [poetry](https://python-poetry.org/docs/#installation)
+which allows for build isolation in a virtual environment. After downloading
+the repository, run `poetry shell` and `poetry install` from the root of the
+repository to install the project. You may need to uninstall the PyPI version
+of `bought` with `pip uninstall bought` to use your own version of `bought`.
