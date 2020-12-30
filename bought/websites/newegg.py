@@ -36,6 +36,7 @@ class Newegg:
         self.delay = float(newegg_delay if newegg_delay else main_delay)
         main_delay_variance = float(self.config["Main"]["DelayVariance"])
         self.delay_lower = self.delay - main_delay_variance
+        assert self.delay_lower > 0
         self.delay_upper = self.delay + main_delay_variance
         self.username = self.config["Newegg"]["Username"]
         self.password = self.config["Newegg"]["Password"]
@@ -45,7 +46,8 @@ class Newegg:
         self.items = [item.strip() for item in items.split(",")]
         self.sign_in = ["Sign in / Register", "Sign In"]
         self.tabs = {}
-        self.log= logging.getLogger("bought")
+        self.log = logging.getLogger("bought")
+        self.log.info(f"Newegg items to monitor: {self.items}")
 
     def close_popup(self):
         """Closes the popup sale that appears on the landing page."""
@@ -65,15 +67,18 @@ class Newegg:
         self.log.info("Opening tabs...")
         self.close_popup()
         item_iter = iter(self.items)
-        try:
-            item = next(item_iter)
-            self.driver.execute_script(
-                f"window.open('{self.base_url}/p/{item}', '{item}')"
-            )
-            self.tabs[item] = self.driver.window_handles[1]
-            time.sleep(random.uniform(self.delay_lower, self.delay_upper))
-        except StopIteration:
-            self.log.info("All item tabs opened.")
+        while True:
+            try:
+                item = next(item_iter)
+                self.driver.execute_script(
+                    f"window.open('{self.base_url}/p/{item}', '{item}')"
+                )
+                self.log.info(f"Opening {item}")
+                self.tabs[item] = self.driver.window_handles[1]
+                time.sleep(random.uniform(self.delay_lower, self.delay_upper))
+            except StopIteration:
+                self.log.info("All item tabs opened.")
+                break
 
     def log_in(self):
         time.sleep(2)
@@ -186,8 +191,8 @@ class Newegg:
 
     def secure_checkout(self):
 
-        if not self.is_self.log.ed_in():
-            self.self.log_in()
+        if not self.is_logged_in():
+            self.log_in()
 
         # Enter CVV2
         try:
@@ -265,9 +270,9 @@ class Newegg:
 
     def check_stock(self):
         """Cycles through opened tabs, refreshes, check if product is restocked."""
-        xpath = '//button[@class="btn btn-primary btn-wide"]'
+        add_to_cart_btn = '//button[@class="btn btn-primary btn-wide"]'
         while True:
-            self.log.debug("Checking stock...")
+            self.log.info("Refreshing page(s)...")
             for tab in self.tabs.keys():
                 WebDriverWait(self.driver, 3).until(
                     EC.number_of_windows_to_be(len(self.tabs.keys()) + 1)
@@ -275,13 +280,11 @@ class Newegg:
                 self.driver.switch_to.window(self.tabs[tab])
                 self.driver.refresh()
                 try:
-                    if self.driver.find_element_by_xpath(xpath):
-                        current_time = time.time()
-                        self.log.info("IN STOCK!")
-                        return self.driver.find_element_by_xpath(xpath).click()
+                    if self.driver.find_element_by_xpath(add_to_cart_btn):
+                        self.log.info(f"{tab} IN STOCK!")
+                        return self.driver.find_element_by_xpath(add_to_cart_btn).click()
                 except NoSuchElementException:
-                    current_time = time.time()
-                    self.log.info("Not in stock...")
+                    self.log.info(f"{tab} NOT in stock...")
                     pass
             time.sleep(random.uniform(self.delay_lower, self.delay_upper))
 

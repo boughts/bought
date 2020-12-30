@@ -51,8 +51,7 @@ def main(ctx, driver, headless):
     logging.basicConfig(
         filemode='a',
         filename="bought.log",
-        encoding="utf-8",
-        level=logging.DEBUG
+        format="[%(asctime)s] [%(levelname)s] %(message)s"
     )
     log = logging.getLogger("bought")
     log.setLevel(logging.DEBUG)
@@ -85,9 +84,9 @@ def main(ctx, driver, headless):
 
     if drive == "firefox":
         log.info(f'Using FireFox webdriver.')
-        if os.path.isdir(ctx.config["Main"]["BrowserPath"]):
-            log.info(f'Logging profile: {ctx.config["Main"]["BrowserPath"]}')
-            fp = webdriver.FirefoxProfile(ctx.config["Main"]["BrowserPath"])
+        if os.path.isdir(ctx.config["Main"]["BrowserProfile"]):
+            log.info(f'Logging profile: {ctx.config["Main"]["BrowserProfile"]}')
+            fp = webdriver.FirefoxProfile(ctx.config["Main"]["BrowserProfile"])
             log.info("Finished loading profile.")
         else:
             log.info("Using default blank profile.")
@@ -96,9 +95,9 @@ def main(ctx, driver, headless):
     elif drive == "chrome" or drive == "chromium":
         log.info(f'Using Chrome webdriver.')
         options = webdriver.ChromeOptions()
-        if ctx.config["Main"]["BrowserPath"]:
-            log.info(f'Logging profile: {ctx.config["Main"]["BrowserPath"]}')
-            options.add_argument(f'--user-data-dir={ctx.config["Main"]["BrowserPath"]}')
+        if ctx.config["Main"]["BrowserProfile"]:
+            log.info(f'Logging profile: {ctx.config["Main"]["BrowserProfile"]}')
+            options.add_argument(f'--user-data-dir={ctx.config["Main"]["BrowserProfile"]}')
         else:
             log.info("Using default blank profile.")
     else:
