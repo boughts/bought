@@ -51,8 +51,6 @@ def main(ctx, driver, headless):
     logging.basicConfig(
         filemode='a',
         filename="bought.log",
-        encoding="utf-8",
-        level=logging.DEBUG,
         format="[%(asctime)s] [%(levelname)s] %(message)s"
     )
     log = logging.getLogger("bought")

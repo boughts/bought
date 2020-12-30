@@ -8,7 +8,7 @@ Installing this bot is a multi-step process involving a Command Line
 Interface (CLI) such as Windows PowerShell, Bash, Zsh, and Fish:
 1. [Download Python](#1-downloading-python)
 2. [Installing Bought](#2-installing-bought)
-3. [Download browser drivers](#3-install-webdriver).
+3. [Download browser drivers](#3-install-webdriver)
 
 ### 1. Downloading Python
 Open up your respective CLI and type:
