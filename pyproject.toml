@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bought"
-version = "0.1.2"
+version = "0.1.3"
 description = "A bot that purchases items, rendering them bought."
 authors = ["Jason G. Villanueva <a@jsonvillanueva.com>"]
 license = "GPL v3"
@@ -16,6 +16,7 @@ classifiers= [
     ]
 [tool.poetry.dependencies]
 python = "^3.7"
+lxml = "*"
 selenium = "*"
 click = "*"
 requests = "*"
