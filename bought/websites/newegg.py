@@ -9,7 +9,8 @@ import requests
 
 from bought.sounds.play import play
 from threading import Thread
-
+from lxml import html
+from requests import HTTPError
 from selenium import webdriver
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
@@ -74,14 +75,15 @@ class Newegg:
                     f"window.open('{self.base_url}/p/{item}', '{item}')"
                 )
                 self.log.info(f"Opening {item}")
-                self.tabs[item] = self.driver.window_handles[1]
+                self.tabs[item] = self.driver.window_handles[-1]
+                self.log.info(f"window handles: {self.driver.window_handles}")
+                self.log.info(f"Adding tab: {self.tabs}")
                 time.sleep(random.uniform(self.delay_lower, self.delay_upper))
             except StopIteration:
                 self.log.info("All item tabs opened.")
                 break
 
     def log_in(self):
-        time.sleep(2)
         self.close_popup()
         xpath = '//a[@class="nav-complex-inner"]'
         try:
@@ -89,7 +91,6 @@ class Newegg:
         except NoSuchElementException:
             pass
         if self.username and self.password:
-            time.sleep(2)
             username_input = self.driver.find_element_by_id("labeled-input-signEmail")
             username_input.send_keys(self.username)
             try:
@@ -105,8 +106,7 @@ class Newegg:
             except:
                 exit()
             try:
-                self.log.debug("Getting security code.")
-                security_code = WebDriverWait(self.driver, 10).until(
+                security_code = WebDriverWait(self.driver, 1).until(
                     EC.presence_of_element_located(
                         (
                             By.XPATH,
@@ -114,6 +114,7 @@ class Newegg:
                         )
                     )
                 )
+                self.log.debug("Getting security code.")
                 if security_code.text == "Enter the code that has been sent to":
                     self.log.debug("Waiting until you type in security code and move to next page.")
                     while True:
@@ -135,34 +136,50 @@ class Newegg:
     def is_logged_in(self):
         self.close_popup()
         xpath = '//div[@class="nav-complex-title"]'
-        xpath2 = '//div[@class="signin-body"]'
         try:
-            if self.driver.find_element_by_xpath(xpath).text in self.sign_in:
-                self.log.debug("Not logged in. 'Sign in / Register' text visible on homepage.")
-                return False
-        except NoSuchElementException:
+            self.log.info("Checking if logged in...")
+            signin = WebDriverWait(self.driver, 2).until(
+                EC.element_to_be_clickable(
+                    (
+                        By.ID,
+                        'labeled-input-signEmail'
+                    )
+                )
+            )
+            self.log.debug("Not logged in. Signing in...")
+            return False
+        except Exception as e:
+            self.log.debug(f"{type(e)}{e}")
             try:
-                if self.driver.find_element_by_xpath(xpath2).text in self.sign_in:
-                    self.log.debug("Not logged in. On 'Sign In' page.")
+                if self.driver.find_element_by_xpath(xpath).text in self.sign_in:
                     return False
-            except NoSuchElementException:
-                pass
-        self.log.debug("Already logged in on landing page!")
+            except Exception as e:
+                self.log.debug(f"{type(e)}{e}")
+        self.log.info("Already logged in on landing page!")
         return True
 
     def add_to_cart(self):
 
         # Play sound in new thread
         if self.config["Main"]["PlaySound"].lower() == "true":
+            self.log.info("Playing alert sound.")
             success_alert = Thread(target=play, args=("bought/sounds/alert.mp3",))
             success_alert.start()
 
         # Protection plan
         try:
-            self.log.debug("No protection plan.")
             xpath = '//button[@class="btn"]'
-            btn = self.driver.find_element_by_xpath(xpath)
-            if btn.text == "No, thanks":
+            self.log.info("Checking if protection plan available.")
+            btn = WebDriverWait(self.driver, 10).until(
+                EC.element_to_be_clickable(
+                    (
+                        By.XPATH,
+                        xpath
+                    )
+                )
+            )
+            if btn.text.lower() == "no, thanks":
+                self.log.info("Protection Plan: No, thanks.")
                 btn.click()
         except NoSuchElementException as e:
             self.log.warn(f"Error {e}")
@@ -171,7 +188,7 @@ class Newegg:
 
         # View Cart & Checkout
         try:
-            self.log.debug("View cart/checkout")
+            self.log.info("View cart/checkout")
             xpath1 = '//button[@class="btn btn-undefined btn-primary"]'
             self.driver.find_element_by_xpath(xpath1).click()
         except NoSuchElementException as e:
@@ -179,9 +196,9 @@ class Newegg:
 
         # Secure Checkout
         try:
-            self.log.debug("Secure checkout.")
             xpath2 = '//button[@class="btn btn-primary btn-wide"]'
             self.driver.find_element_by_xpath(xpath2).click()
+            self.log.info("Clicked Secure Checkout.")
         except NoSuchElementException as e:
             self.log.warn(f"Error {e}")
         except ElementClickInterceptedException as e:
@@ -189,103 +206,36 @@ class Newegg:
                 "/html/body/div[8]/div[1]/div/div/div/div[3]/div[2]/button[1]"
             ).click()
 
-    def secure_checkout(self):
-
-        if not self.is_logged_in():
-            self.log_in()
-
-        # Enter CVV2
-        try:
-            self.log.debug("Entering CVV2 and Review Order")
-            time.sleep(1)
-            cvv2_input = self.driver.find_element_by_xpath(
-                "/html/body/div[7]/div/section/div/div/form/div[2]/div[1]/div/div[3]/div/div[2]/div[1]/div[2]/div[3]/input"
-            )
-            cvv2_input.click()
-            a = ActionChains(self.driver)
-            a.click_and_hold(cvv2_input).move_by_offset(-100, -100).release().perform()
-            cvv2_input.send_keys(self.cvv2)
-        except Exception as e:
-            self.log.warn(f"Error {e}")
-
-        try:
-            place_order_btn = self.driver.find_element_by_xpath(
-                '//*[@id="btnCreditCard"]'
-            )
-            place_order_btn.click()
-
-        except ElementClickInterceptedException:
-            # Continue to Payment
-            try:
-                self.log.debug("Continue to Payment.")
-                continue_to_payment_btn_path = "/html/body/div[7]/div/section/div/div/form/div[2]/div[1]/div/div[2]/div/div[3]/button"
-                payment = self.driver.find_element_by_xpath(
-                    continue_to_payment_btn_path
-                )
-                last_height = self.driver.execute_script(
-                    "return document.body.scrollHeight"
-                )
-                self.driver.execute_script(
-                    "window.scrollTo(0, document.body.scrollHeight);"
-                )
-                ActionChains(self.driver).move_to_element(payment).click().perform()
-
-            except NoSuchElementException as e:
-                self.log.warn(f"Error {e}")
-
-            # Review your Order
-            try:
-                xpath4 = "/html/body/div[7]/div/section/div/div/form/div[2]/div[1]/div/div[3]/div/div[3]/button"
-                self.driver.find_element_by_xpath(xpath4).click()
-            except NoSuchElementException as e:
-                self.log.warn(f"Error {e}")
-            except ElementNotInteractableException as e:
-                self.log.warn(f"Error {e}")
-
-            # Retype Card Number
-            try:
-                self.log.debug("Typing Card Number...")
-                self.driver.switch_to.frame(
-                    self.driver.find_element_by_tag_name("iframe")
-                )
-                card_inp = self.driver.find_element_by_xpath(
-                    "/html/body/div[6]/div/div[2]/div[2]/div[1]/input"
-                )
-                a = ActionChains(self.driver)
-                a.click_and_hold(card_inp).move_by_offset(10, 10).release().perform()
-                card_inp.send_keys(self.card)
-                save_button = "/html/body/div[6]/div/div[3]/button[2]"
-                self.driver.find_element_by_xpath(save_button).click()
-                self.driver.switch_to.default_content()
-            except NoSuchElementException:
-                self.driver.switch_to.default_content()
-            except ElementClickInterceptedException:
-                self.driver.switch_to.default_content()
-
-        finally:
-            place_order_btn = self.driver.find_element_by_xpath(
-                '//*[@id="btnCreditCard"]'
-            )
-            place_order_btn.click()
-
     def check_stock(self):
         """Cycles through opened tabs, refreshes, check if product is restocked."""
         add_to_cart_btn = '//button[@class="btn btn-primary btn-wide"]'
+        self.log.info(f"Cycling through tabs: {self.tabs}")
         while True:
             self.log.info("Refreshing page(s)...")
             for tab in self.tabs.keys():
-                WebDriverWait(self.driver, 3).until(
-                    EC.number_of_windows_to_be(len(self.tabs.keys()) + 1)
-                )
-                self.driver.switch_to.window(self.tabs[tab])
-                self.driver.refresh()
                 try:
-                    if self.driver.find_element_by_xpath(add_to_cart_btn):
+                    result = requests.get(f"https://www.newegg.com/p/{tab}")
+                    result.raise_for_status()
+                    tree = html.fromstring(result.text)
+                    if tree.xpath(add_to_cart_btn):
                         self.log.info(f"{tab} IN STOCK!")
-                        return self.driver.find_element_by_xpath(add_to_cart_btn).click()
-                except NoSuchElementException:
-                    self.log.info(f"{tab} NOT in stock...")
+                        self.driver.switch_to.window(self.tabs[tab])
+                        self.driver.refresh()
+                        add_to_cart = WebDriverWait(self.driver, 10).until(
+                            EC.element_to_be_clickable(
+                                (
+                                    By.XPATH,
+                                    add_to_cart_btn
+                                )
+                            )
+                        )
+                        add_to_cart.click()
+                        self.log.info(f"Clicked ADD TO CART.")
+                        return
+                    self.log.info(f"{tab} not in stock...")
+                except requests.HTTPError:
                     pass
+
             time.sleep(random.uniform(self.delay_lower, self.delay_upper))
 
     def purchase(self):
@@ -354,8 +304,13 @@ class Newegg:
         # Refresh pages until not sold out - adds first to restocked item to cart.
         self.check_stock()
 
-        # Secure checkout -> Sign in if necessary -> Continue to Payment, enter CVV2
+        # Clicks secure checkout
         self.add_to_cart()
+
+        # Sign in if necessary
+        while not self.is_logged_in():
+            time.sleep(random.uniform(self.delay_lower, self.delay_upper))
+            self.log_in()
 
         # Place order screen
         self.purchase()
