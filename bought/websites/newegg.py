@@ -91,43 +91,64 @@ class Newegg:
         except NoSuchElementException:
             pass
         if self.username and self.password:
-            username_input = self.driver.find_element_by_id("labeled-input-signEmail")
-            username_input.send_keys(self.username)
             try:
+                self.log.info("Looking for E-Mail field.")
+                username_input = WebDriverWait(self.driver,10).until(
+                    EC.element_to_be_clickable(
+                        (
+                            By.ID,
+                            "labeled-input-signEmail"
+                        )
+                    )
+                )
+                username_input.send_keys(self.username)
+                self.log.info("Clicking Sign In Button.")
                 sign_in_btn = WebDriverWait(self.driver, 10).until(
                     EC.element_to_be_clickable(
                         (
-                            By.XPATH,
-                            "//div[@class='form-cell'][3]"
+                            By.ID,
+                            'signInSubmit'
                         )
                     )
                 )
                 sign_in_btn.click()
-            except:
-                exit()
-            try:
-                security_code = WebDriverWait(self.driver, 1).until(
-                    EC.presence_of_element_located(
+                try:
+                    self.log.info("Checking if security code sent.")
+                    security_code = WebDriverWait(self.driver, 1).until(
+                        EC.presence_of_element_located(
+                            (
+                                By.XPATH,
+                                "/html/body/div[5]/div/div[2]/div/div/div[3]/form/div/div[2]/div",
+                            )
+                        )
+                    )
+                    self.log.debug("Getting security code.")
+                    if security_code.text == "Enter the code that has been sent to":
+                        self.log.debug("Waiting until you type in security code and move to next page.")
+                        while True:
+                            try:
+                                if self.driver.find_element_by_xpath(xpath):
+                                    return
+                            except:
+                                pass
+                except:
+                    self.log.info("No security code sent.")
+                self.log.info("Looking for password field.")
+                password_input = WebDriverWait(self.driver, 10).until(
+                    EC.element_to_be_clickable(
                         (
-                            By.XPATH,
-                            "/html/body/div[5]/div/div[2]/div/div/div[3]/form/div/div[2]/div",
+                            By.ID,
+                            "labeled-input-password"
                         )
                     )
                 )
-                self.log.debug("Getting security code.")
-                if security_code.text == "Enter the code that has been sent to":
-                    self.log.debug("Waiting until you type in security code and move to next page.")
-                    while True:
-                        try:
-                            if self.driver.find_element_by_xpath(xpath):
-                                return
-                        except:
-                            pass
-            except:
-                pass
-            password_input = self.driver.find_element_by_id("labeled-input-password")
-            password_input.send_keys(self.password)
-            self.driver.find_element_by_xpath('//div[@class="form-cell"][3]').click()
+                self.log.info("Entering password field.")
+                password_input.send_keys(self.password)
+                self.log.info("Submitting password.")
+                self.driver.find_element_by_xpath('//div[@class="form-cell"][3]').click()
+            except Exception as e:
+                self.log.warn(f"{e}")
+                exit()
         else:  # Username and password not provided
             while self.driver.find_element_by_id("labeled-input-signEmail"):
                 self.log.debug("Waiting 15 seconds for you to signin (user and password).")
@@ -146,15 +167,15 @@ class Newegg:
                     )
                 )
             )
-            self.log.debug("Not logged in. Signing in...")
+            self.log.debug("On login screen. Not logged in...")
             return False
         except Exception as e:
-            self.log.debug(f"{type(e)}{e}")
             try:
                 if self.driver.find_element_by_xpath(xpath).text in self.sign_in:
+                    self.log.info("On landing page. Not logged in...")
                     return False
-            except Exception as e:
-                self.log.debug(f"{type(e)}{e}")
+            except:
+                pass
         self.log.info("Already logged in on landing page!")
         return True
 
@@ -288,7 +309,7 @@ class Newegg:
         try:
             if self.driver.find_element_by_xpath(ban_xpath):
                 self.log.warn("You are currently proxy banned! Exiting...")
-                self.log.warn("Try increasing the Main.Delay value.")
+                self.log.warn("Try increasing the Newegg Delay value.")
                 exit()
         except Exception:
             pass
