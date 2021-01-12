@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import math
 import click
@@ -10,7 +11,6 @@ import requests
 from bought.sounds.play import play
 from threading import Thread
 from lxml import html
-from requests import HTTPError
 from selenium import webdriver
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
@@ -28,26 +28,49 @@ __all__ = ["Newegg"]
 
 
 class Newegg:
-    def __init__(self, obj, items):
+    def __init__(self, obj, items, delay, username, password, card, cvv2):
         self.obj = obj
-        self.config = obj["config"]
-        self.driver = obj["driver"]
-        newegg_delay = self.config["Newegg"]["Delay"]
-        main_delay = self.config["Main"]["Delay"]
-        self.delay = float(newegg_delay if newegg_delay else main_delay)
-        main_delay_variance = float(self.config["Main"]["DelayVariance"])
-        self.delay_lower = self.delay - main_delay_variance
-        assert self.delay_lower > 0
-        self.delay_upper = self.delay + main_delay_variance
-        self.username = self.config["Newegg"]["Username"]
-        self.password = self.config["Newegg"]["Password"]
-        self.card = self.config["Newegg"]["Card"]
-        self.cvv2 = self.config["Newegg"]["CVV2"]
-        self.base_url = "https://www.newegg.com/"
         self.items = [item.strip() for item in items.split(",")]
+        self.delay = delay
+        self.username = username
+        self.password = password
+        self.card = card
+        self.cvv2 = cvv2
+        self.driver = obj["driver"]
+        self.base_url = "https://www.newegg.com/"
         self.sign_in = ["Sign in / Register", "Sign In"]
         self.tabs = {}
         self.log = logging.getLogger("bought")
+
+        try:
+            if self.obj["main"]:
+                main_delay_variance = float(self.obj["main"]["variance"])
+                self.delay_lower = self.delay - main_delay_variance
+                assert self.delay_lower > 0
+                self.delay_upper = self.delay + main_delay_variance
+            if self.obj.config:
+                self.config = obj["config"]
+                newegg_delay = self.config["Newegg"]["Delay"]
+                main_delay = self.config["Main"]["Delay"]
+                self.delay = float(newegg_delay if newegg_delay else main_delay)
+                main_delay_variance = float(self.config["Main"]["DelayVariance"])
+                self.delay_lower = self.delay - main_delay_variance
+                assert self.delay_lower > 0
+                self.delay_upper = self.delay + main_delay_variance
+                self.username = self.config["Newegg"]["Username"]
+                self.password = self.config["Newegg"]["Password"]
+                self.card = self.config["Newegg"]["Card"]
+                self.cvv2 = self.config["Newegg"]["CVV2"]
+                self.items = [item.strip() for item in items.split(",")]
+        except:
+            pass
+        try:
+            assert self.items != []
+        except:
+            self.log.warn("No items specified. Exiting...")
+            self.driver.close()
+            sys.exit()
+
         self.log.info(f"Newegg items to monitor: {self.items}")
 
     def close_popup(self):
@@ -93,25 +116,42 @@ class Newegg:
         if self.username and self.password:
             try:
                 self.log.info("Looking for E-Mail field.")
-                username_input = WebDriverWait(self.driver,10).until(
-                    EC.element_to_be_clickable(
-                        (
-                            By.ID,
-                            "labeled-input-signEmail"
-                        )
-                    )
+                username_input = WebDriverWait(self.driver, 10).until(
+                    EC.element_to_be_clickable((By.ID, "labeled-input-signEmail"))
                 )
                 username_input.send_keys(self.username)
                 self.log.info("Clicking Sign In Button.")
                 sign_in_btn = WebDriverWait(self.driver, 10).until(
-                    EC.element_to_be_clickable(
-                        (
-                            By.ID,
-                            'signInSubmit'
-                        )
-                    )
+                    EC.element_to_be_clickable((By.ID, "signInSubmit"))
                 )
                 sign_in_btn.click()
+                try:
+                    invalid_email = WebDriverWait(self.driver, 1).until(
+                        EC.presence_of_element_located(
+                            (
+                                By.XPATH,
+                                "/html/body/div[5]/div/div[2]/div/div/div[1]/form/div/div[1]/div/div",
+                            )
+                        )
+                    )
+                    self.log.warn("Invalid email entered.")
+                    raise SystemExit
+                except SystemExit:
+                    self.log.warn("Exiting...")
+                    self.driver.close()
+                    sys.exit()
+                except:
+                    pass
+                while True:
+                    try:
+                        WebDriverWait(self.driver, 1).until(
+                            EC.element_to_be_clickable(
+                                (By.ID, "labeled-input-signEmail")
+                            )
+                        )
+                    except:
+                        break
+
                 try:
                     self.log.info("Checking if security code sent.")
                     security_code = WebDriverWait(self.driver, 1).until(
@@ -122,36 +162,38 @@ class Newegg:
                             )
                         )
                     )
-                    self.log.debug("Getting security code.")
-                    if security_code.text == "Enter the code that has been sent to":
-                        self.log.debug("Waiting until you type in security code and move to next page.")
-                        while True:
-                            try:
-                                if self.driver.find_element_by_xpath(xpath):
-                                    return
-                            except:
-                                pass
+                    self.log.debug("Security code prompted.")
+                    self.log.debug(
+                        "Waiting until you type in security code and move to next page."
+                    )
+                    while True:
+                        try:
+                            if self.driver.find_element_by_xpath(xpath):
+                                return
+                        except:
+                            pass
                 except:
                     self.log.info("No security code sent.")
                 self.log.info("Looking for password field.")
                 password_input = WebDriverWait(self.driver, 10).until(
-                    EC.element_to_be_clickable(
-                        (
-                            By.ID,
-                            "labeled-input-password"
-                        )
-                    )
+                    EC.element_to_be_clickable((By.ID, "labeled-input-password"))
                 )
                 self.log.info("Entering password field.")
                 password_input.send_keys(self.password)
                 self.log.info("Submitting password.")
-                self.driver.find_element_by_xpath('//div[@class="form-cell"][3]').click()
+                self.driver.find_element_by_xpath(
+                    '//div[@class="form-cell"][3]'
+                ).click()
             except Exception as e:
                 self.log.warn(f"{e}")
-                exit()
+                self.log.warn("Exiting...")
+                self.driver.close()
+                sys.exit()
         else:  # Username and password not provided
             while self.driver.find_element_by_id("labeled-input-signEmail"):
-                self.log.debug("Waiting 15 seconds for you to signin (user and password).")
+                self.log.debug(
+                    "Waiting 15 seconds for you to signin (user and password)."
+                )
                 time.sleep(15)
 
     def is_logged_in(self):
@@ -160,12 +202,7 @@ class Newegg:
         try:
             self.log.info("Checking if logged in...")
             signin = WebDriverWait(self.driver, 2).until(
-                EC.element_to_be_clickable(
-                    (
-                        By.ID,
-                        'labeled-input-signEmail'
-                    )
-                )
+                EC.element_to_be_clickable((By.ID, "labeled-input-signEmail"))
             )
             self.log.debug("On login screen. Not logged in...")
             return False
@@ -192,12 +229,7 @@ class Newegg:
             xpath = '//button[@class="btn"]'
             self.log.info("Checking if protection plan available.")
             btn = WebDriverWait(self.driver, 10).until(
-                EC.element_to_be_clickable(
-                    (
-                        By.XPATH,
-                        xpath
-                    )
-                )
+                EC.element_to_be_clickable((By.XPATH, xpath))
             )
             if btn.text.lower() == "no, thanks":
                 self.log.info("Protection Plan: No, thanks.")
@@ -230,9 +262,10 @@ class Newegg:
     def check_stock(self):
         """Cycles through opened tabs, refreshes, check if product is restocked."""
         add_to_cart_btn = '//button[@class="btn btn-primary btn-wide"]'
+        human = "/html/body/div[1]/div[2]/h1"
         self.log.info(f"Cycling through tabs: {self.tabs}")
         while True:
-            self.log.info("Refreshing page(s)...")
+            self.log.info("Refreshing page(s) in background...")
             for tab in self.tabs.keys():
                 try:
                     result = requests.get(f"https://www.newegg.com/p/{tab}")
@@ -243,19 +276,29 @@ class Newegg:
                         self.driver.switch_to.window(self.tabs[tab])
                         self.driver.refresh()
                         add_to_cart = WebDriverWait(self.driver, 10).until(
-                            EC.element_to_be_clickable(
-                                (
-                                    By.XPATH,
-                                    add_to_cart_btn
-                                )
-                            )
+                            EC.element_to_be_clickable((By.XPATH, add_to_cart_btn))
                         )
                         add_to_cart.click()
                         self.log.info(f"Clicked ADD TO CART.")
                         return
+                    elif tree.xpath(human):
+                        self.log.warn(
+                            "Newegg is asking if you're a bot. Human interaction required!"
+                        )
+                        self.driver.switch_to.window(self.tabs[tab])
+                        self.driver.refresh()
+                        while True:
+                            try:
+                                human = WebDriverWait(self.driver, 10).until(
+                                    EC.element_to_be_clickable((By.XPATH, human))
+                                )
+                            except:
+                                self.log.info("You are human!")
+                                break
+
                     self.log.info(f"{tab} not in stock...")
-                except requests.HTTPError:
-                    pass
+                except Exception as e:
+                    self.log.warn(f"Error loading webpage:{str(e)}")
 
             time.sleep(random.uniform(self.delay_lower, self.delay_upper))
 
@@ -283,16 +326,14 @@ class Newegg:
             place_order_btn.click()
             self.log.debug("Order completed!")
 
-        except TimeoutException:
-            exit()
-
         except Exception as e:
-            self.log.warn(f"Couldn't auto purchase. {e}\nExiting...")
-            exit()
+            self.log.warn(e)
+            self.log.warn(f"Couldn't auto purchase. Exiting...")
+            sys.exit()
 
     def are_you_human(self):
-        '''https://www.newegg.com/areyouahuman?itn=true&referer=/areyouahuman?referer=https%3A%2F%2Fwww.newegg.com%2F&why=8'''
-        checkbox = ('/html/body/div[2]/div[3]/div[1]/div/div/span/div[1]')
+        """https://www.newegg.com/areyouahuman?itn=true&referer=/areyouahuman?referer=https%3A%2F%2Fwww.newegg.com%2F&why=8"""
+        checkbox = "/html/body/div[2]/div[3]/div[1]/div/div/span/div[1]"
         try:
             self.driver.find_element_by_xpath(checkbox).click()
         except:
