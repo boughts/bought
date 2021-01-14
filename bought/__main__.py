@@ -194,8 +194,8 @@ def main(ctx, driver, profile, headless, delay, variance, wait, testrun, sound):
     help="A list of Newegg item numbers.",
 )
 @click.option("--delay", default=4, help="Newegg delay value for restock check.")
-@click.option("-u", "--username", default="Username", help="Newegg email login.")
-@click.option("-p", "--password", default="Password", help="Newegg password.")
+@click.option("-u", "--username", help="Newegg email login.")
+@click.option("-p", "--password", help="Newegg password.")
 @click.option(
     "--card", default="1234123412341234", help="Default Payment's Card number."
 )
@@ -205,5 +205,16 @@ def main(ctx, driver, profile, headless, delay, variance, wait, testrun, sound):
 @click.pass_context
 def newegg(ctx, items, delay, username, password, card, cvv2):
     """Bought newegg items."""
+    try:
+        if ctx.obj['config']:
+            conf = ctx.obj['config']
+            items = conf['Newegg']['Items']
+            delay = conf['Newegg']['Delay']
+            username = conf['Newegg']['Username']
+            password = conf['Newegg']['Password']
+            card = conf['Newegg']['Card']
+            cvv2 = conf['Newegg']['CVV2']
+    except:
+        pass
     newegg = Newegg(ctx.obj, items, delay, username, password, card, cvv2)
     newegg.bought()

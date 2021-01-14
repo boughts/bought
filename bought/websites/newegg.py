@@ -31,7 +31,7 @@ class Newegg:
     def __init__(self, obj, items, delay, username, password, card, cvv2):
         self.obj = obj
         self.items = [item.strip() for item in items.split(",")]
-        self.delay = delay
+        self.delay = float(delay)
         self.username = username
         self.password = password
         self.card = card
@@ -44,11 +44,14 @@ class Newegg:
 
         try:
             if self.obj["main"]:
+                self.log.info(self.obj["main"])
                 main_delay_variance = float(self.obj["main"]["variance"])
                 self.delay_lower = self.delay - main_delay_variance
                 assert self.delay_lower > 0
                 self.delay_upper = self.delay + main_delay_variance
-            if self.obj.config:
+                self.log.info("Variance set.")
+            if self.obj["config"]:
+                self.log.info('Config parameters specified. Overwriting defaults.')
                 self.config = obj["config"]
                 newegg_delay = self.config["Newegg"]["Delay"]
                 main_delay = self.config["Main"]["Delay"]
@@ -62,8 +65,9 @@ class Newegg:
                 self.card = self.config["Newegg"]["Card"]
                 self.cvv2 = self.config["Newegg"]["CVV2"]
                 self.items = [item.strip() for item in items.split(",")]
-        except:
-            pass
+                self.log.info("Loaded all config parameters successfully.")
+        except Exception as e:
+            self.log.warn("Error loading config parameters.")
         try:
             assert self.items != []
         except:
