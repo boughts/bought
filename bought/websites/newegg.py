@@ -51,7 +51,7 @@ class Newegg:
                 self.delay_upper = self.delay + main_delay_variance
                 self.log.info("Variance set.")
             if self.obj["config"]:
-                self.log.info('Config parameters specified. Overwriting defaults.')
+                self.log.info("Config parameters specified. Overwriting defaults.")
                 self.config = obj["config"]
                 newegg_delay = self.config["Newegg"]["Delay"]
                 main_delay = self.config["Main"]["Delay"]

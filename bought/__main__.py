@@ -206,14 +206,14 @@ def main(ctx, driver, profile, headless, delay, variance, wait, testrun, sound):
 def newegg(ctx, items, delay, username, password, card, cvv2):
     """Bought newegg items."""
     try:
-        if ctx.obj['config']:
-            conf = ctx.obj['config']
-            items = conf['Newegg']['Items']
-            delay = conf['Newegg']['Delay']
-            username = conf['Newegg']['Username']
-            password = conf['Newegg']['Password']
-            card = conf['Newegg']['Card']
-            cvv2 = conf['Newegg']['CVV2']
+        if ctx.obj["config"]:
+            conf = ctx.obj["config"]
+            items = conf["Newegg"]["Items"]
+            delay = conf["Newegg"]["Delay"]
+            username = conf["Newegg"]["Username"]
+            password = conf["Newegg"]["Password"]
+            card = conf["Newegg"]["Card"]
+            cvv2 = conf["Newegg"]["CVV2"]
     except:
         pass
     newegg = Newegg(ctx.obj, items, delay, username, password, card, cvv2)
